@@ -1,0 +1,729 @@
+openapi: 3.1.0
+info:
+  title: Puesto Chance API
+  version: 1.0.0
+  description: Especificación reconstruida desde las rutas y validaciones del código fuente.
+servers:
+  - url: http://localhost:3000
+tags:
+  - name: Salud
+  - name: Autenticación
+  - name: Sorteos
+  - name: Tiquetes
+  - name: Caja
+paths:
+  /health:
+    get:
+      tags: [Salud]
+      summary: Comprobar respuesta HTTP de la aplicación
+      security: []
+      responses:
+        '200':
+          description: La aplicación responde.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [estado, hora]
+                properties:
+                  estado:
+                    type: string
+                    enum: [ok]
+                  hora:
+                    type: string
+                    format: date-time
+  /api/v1/auth/login:
+    post:
+      tags: [Autenticación]
+      summary: Iniciar sesión
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+      responses:
+        '200':
+          description: Token y perfil público.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoginResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+  /api/v1/auth/perfil:
+    get:
+      tags: [Autenticación]
+      summary: Consultar el perfil autenticado
+      responses:
+        '200':
+          description: Perfil sin contraseña.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+  /api/v1/sorteos:
+    get:
+      tags: [Sorteos]
+      summary: Listar sorteos
+      parameters:
+        - in: query
+          name: tipo
+          schema:
+            type: string
+            enum: [CHANCE, BALOTO]
+        - in: query
+          name: estado
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Sorteos coincidentes.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Sorteo'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+    post:
+      tags: [Sorteos]
+      summary: Crear un sorteo (ADMIN)
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NuevoSorteo'
+      responses:
+        '201':
+          description: Sorteo creado en estado ABIERTO.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Sorteo'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+  /api/v1/sorteos/{id}:
+    get:
+      tags: [Sorteos]
+      summary: Consultar un sorteo por id
+      parameters:
+        - $ref: '#/components/parameters/SorteoId'
+      responses:
+        '200':
+          description: Sorteo encontrado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Sorteo'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /api/v1/sorteos/{id}/resultado:
+    post:
+      tags: [Sorteos]
+      summary: Registrar resultado y liquidar tiquetes (ADMIN)
+      parameters:
+        - $ref: '#/components/parameters/SorteoId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [resultado]
+              properties:
+                resultado:
+                  oneOf:
+                    - type: string
+                      pattern: '^\d{4}$'
+                      description: Resultado para sorteo de Chance.
+                    - $ref: '#/components/schemas/ResultadoBalotoEntrada'
+      responses:
+        '200':
+          description: Sorteo jugado y tiquetes activos liquidados.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Sorteo'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+  /api/v1/tickets/chance:
+    post:
+      tags: [Tiquetes]
+      summary: Vender tiquete de Chance (VENDEDOR)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/VentaChance'
+      responses:
+        '201':
+          description: Tiquete Chance creado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TicketChance'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+  /api/v1/tickets/baloto:
+    post:
+      tags: [Tiquetes]
+      summary: Vender tiquete de Baloto (VENDEDOR)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/VentaBaloto'
+      responses:
+        '201':
+          description: Tiquete Baloto creado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TicketBaloto'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+  /api/v1/tickets:
+    get:
+      tags: [Tiquetes]
+      summary: Listar tiquetes según rol y filtros
+      parameters:
+        - in: query
+          name: fecha
+          schema:
+            type: string
+            format: date
+        - in: query
+          name: estado
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Tiquetes visibles para el usuario.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Ticket'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+  /api/v1/tickets/{codigo}:
+    get:
+      tags: [Tiquetes]
+      summary: Consultar tiquete y su sorteo por código
+      parameters:
+        - $ref: '#/components/parameters/CodigoTicket'
+      responses:
+        '200':
+          description: Tiquete con resumen del sorteo y condición de ganador.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Ticket'
+                  - type: object
+                    properties:
+                      sorteo:
+                        $ref: '#/components/schemas/SorteoResumen'
+                      ganador:
+                        type: [boolean, 'null']
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /api/v1/tickets/{codigo}/anular:
+    post:
+      tags: [Tiquetes]
+      summary: Anular tiquete activo
+      parameters:
+        - $ref: '#/components/parameters/CodigoTicket'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [motivo]
+              properties:
+                motivo:
+                  type: string
+                  minLength: 1
+      responses:
+        '200':
+          description: Tiquete anulado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Ticket'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+  /api/v1/tickets/{codigo}/pagar:
+    post:
+      tags: [Tiquetes]
+      summary: Pagar premio de tiquete (VENDEDOR)
+      parameters:
+        - $ref: '#/components/parameters/CodigoTicket'
+      responses:
+        '200':
+          description: Pago registrado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Pago'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '410':
+          description: Premio vencido; el tiquete pasa a CADUCADO.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /api/v1/caja/resumen:
+    get:
+      tags: [Caja]
+      summary: Consultar resumen de caja
+      parameters:
+        - in: query
+          name: fecha
+          schema:
+            type: string
+            format: date
+        - in: query
+          name: vendedorId
+          description: Aplicado por el controlador únicamente para rol ADMIN.
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Resumen diario.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResumenCaja'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+  /api/v1/caja/cierre:
+    post:
+      tags: [Caja]
+      summary: Cerrar caja del vendedor autenticado (VENDEDOR)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [efectivoReportado]
+              properties:
+                efectivoReportado:
+                  type: integer
+                  minimum: 0
+                fecha:
+                  type: string
+                  format: date
+      responses:
+        '201':
+          description: Cierre registrado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CierreCaja'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '409':
+          $ref: '#/components/responses/Conflict'
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  parameters:
+    SorteoId:
+      in: path
+      name: id
+      required: true
+      schema:
+        type: integer
+    CodigoTicket:
+      in: path
+      name: codigo
+      required: true
+      schema:
+        type: string
+  responses:
+    BadRequest:
+      description: Entrada no válida o JSON mal formado.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    Unauthorized:
+      description: Token requerido, inválido o expirado.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    Forbidden:
+      description: Rol o usuario sin permiso para la operación.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    NotFound:
+      description: Recurso o ruta no encontrado.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    Conflict:
+      description: Operación incompatible con el estado o las reglas temporales.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+  schemas:
+    Error:
+      type: object
+      properties:
+        error:
+          type: string
+    User:
+      type: object
+      required: [id, usuario, nombre, rol]
+      properties:
+        id:
+          type: integer
+        usuario:
+          type: string
+        nombre:
+          type: string
+        rol:
+          type: string
+          enum: [ADMIN, VENDEDOR]
+    LoginRequest:
+      type: object
+      required: [usuario, password]
+      properties:
+        usuario:
+          type: string
+        password:
+          type: string
+          format: password
+    LoginResponse:
+      type: object
+      required: [token, usuario]
+      properties:
+        token:
+          type: string
+        usuario:
+          $ref: '#/components/schemas/User'
+    Sorteo:
+      type: object
+      properties:
+        id:
+          type: integer
+        tipo:
+          type: string
+          enum: [CHANCE, BALOTO]
+        nombre:
+          type: string
+        fecha:
+          type: string
+          format: date-time
+        estado:
+          type: string
+          enum: [ABIERTO, JUGADO]
+        resultado:
+          anyOf:
+            - type: string
+              pattern: '^\d{4}$'
+            - $ref: '#/components/schemas/ResultadoBaloto'
+            - type: 'null'
+        acumulado:
+          type: integer
+    SorteoResumen:
+      type: object
+      properties:
+        id:
+          type: integer
+        nombre:
+          type: string
+        fecha:
+          type: string
+          format: date-time
+        estado:
+          type: string
+        resultado:
+          anyOf:
+            - type: string
+              pattern: '^\d{4}$'
+            - $ref: '#/components/schemas/ResultadoBaloto'
+            - type: 'null'
+    NuevoSorteo:
+      type: object
+      required: [tipo, nombre, fecha]
+      properties:
+        tipo:
+          type: string
+          enum: [CHANCE, BALOTO]
+        nombre:
+          type: string
+        fecha:
+          type: string
+          format: date-time
+        acumulado:
+          type: integer
+          default: 0
+    ResultadoBaloto:
+      type: object
+      required: [numeros, superbalota]
+      properties:
+        numeros:
+          type: array
+          minItems: 5
+          maxItems: 5
+          uniqueItems: true
+          items:
+            type: integer
+            minimum: 1
+            maximum: 43
+        superbalota:
+          type: integer
+          minimum: 1
+          maximum: 16
+    ResultadoBalotoEntrada:
+      oneOf:
+        - $ref: '#/components/schemas/ResultadoBaloto'
+        - type: object
+          required: [aleatoria]
+          properties:
+            aleatoria:
+              type: boolean
+              enum: [true]
+    ApuestaChance:
+      type: object
+      required: [numero, valor]
+      properties:
+        numero:
+          type: string
+          pattern: '^\d{1,4}$'
+        modalidad:
+          type: string
+          enum: [DIRECTO, COMBINADO]
+          default: DIRECTO
+        valor:
+          type: integer
+          minimum: 500
+          maximum: 50000
+    JugadaBaloto:
+      type: object
+      properties:
+        aleatoria:
+          type: boolean
+        numeros:
+          type: array
+          minItems: 5
+          maxItems: 5
+          uniqueItems: true
+          items:
+            type: integer
+            minimum: 1
+            maximum: 43
+        superbalota:
+          type: integer
+          minimum: 1
+          maximum: 16
+    VentaChance:
+      type: object
+      required: [sorteoId, apuestas]
+      properties:
+        sorteoId:
+          type: integer
+        apuestas:
+          type: array
+          minItems: 1
+          maxItems: 5
+          items:
+            $ref: '#/components/schemas/ApuestaChance'
+        cliente:
+          type: [string, 'null']
+    VentaBaloto:
+      type: object
+      required: [sorteoId, jugadas]
+      properties:
+        sorteoId:
+          type: integer
+        jugadas:
+          type: array
+          minItems: 1
+          maxItems: 10
+          items:
+            $ref: '#/components/schemas/JugadaBaloto'
+        cliente:
+          type: [string, 'null']
+    Ticket:
+      type: object
+      properties:
+        id:
+          type: integer
+        codigo:
+          type: string
+        tipo:
+          type: string
+          enum: [CHANCE, BALOTO]
+        sorteoId:
+          type: integer
+        vendedorId:
+          type: integer
+        cliente:
+          type: string
+          nullable: true
+        total:
+          type: integer
+        estado:
+          type: string
+          enum: [ACTIVO, ANULADO, PAGADO, CADUCADO]
+        premio:
+          type: [integer, 'null']
+        creadoEn:
+          type: string
+          format: date-time
+    TicketChance:
+      allOf:
+        - $ref: '#/components/schemas/Ticket'
+        - type: object
+          properties:
+            apuestas:
+              type: array
+              items:
+                $ref: '#/components/schemas/ApuestaChance'
+    TicketBaloto:
+      allOf:
+        - $ref: '#/components/schemas/Ticket'
+        - type: object
+          properties:
+            jugadas:
+              type: array
+              items:
+                $ref: '#/components/schemas/JugadaBaloto'
+    Pago:
+      type: object
+      properties:
+        id:
+          type: integer
+        ticketId:
+          type: integer
+        codigo:
+          type: string
+        usuarioId:
+          type: integer
+        valor:
+          type: integer
+        fecha:
+          type: string
+          format: date-time
+    ResumenCaja:
+      type: object
+      properties:
+        vendedorId:
+          type: integer
+        fecha:
+          type: string
+          format: date
+        tiquetesVendidos:
+          type: integer
+        tiquetesAnulados:
+          type: integer
+        ventasChance:
+          type: integer
+        ventasBaloto:
+          type: integer
+        totalVendido:
+          type: integer
+        premiosPagados:
+          type: integer
+        totalPagado:
+          type: integer
+        saldoEsperado:
+          type: integer
+        cerrada:
+          type: boolean
+    CierreCaja:
+      allOf:
+        - $ref: '#/components/schemas/ResumenCaja'
+        - type: object
+          properties:
+            efectivoReportado:
+              type: integer
+            diferencia:
+              type: integer
+            estado:
+              type: string
+              enum: [CUADRADA, SOBRANTE, FALTANTE]
+            creadoEn:
+              type: string
+              format: date-time
+security:
+  - bearerAuth: []

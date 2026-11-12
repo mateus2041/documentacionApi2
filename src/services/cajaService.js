@@ -2,6 +2,12 @@ const { getDb, nextId } = require('../data/store');
 const AppError = require('../utils/AppError');
 const { fechaLocal } = require('../utils/fechas');
 
+/**
+ * Calcula ventas, anulaciones, premios pagados y saldo esperado de un vendedor.
+ * @param {number} vendedorId Identificador del vendedor.
+ * @param {string} [fecha=fechaLocal()] Fecha del resumen en formato AAAA-MM-DD.
+ * @returns {Object} Totales del día y estado del cierre de caja.
+ */
 function resumen(vendedorId, fecha = fechaLocal()) {
   const db = getDb();
   const delDia = (iso) => fechaLocal(iso) === fecha;
@@ -28,6 +34,13 @@ function resumen(vendedorId, fecha = fechaLocal()) {
   };
 }
 
+/**
+ * Cierra la caja diaria comparando el efectivo reportado con el saldo esperado.
+ * @param {number} vendedorId Identificador del vendedor que cierra caja.
+ * @param {{efectivoReportado: number, fecha?: string}} datos Efectivo y fecha de cierre.
+ * @returns {Object} Cierre registrado con diferencia y estado CUADRADA, SOBRANTE o FALTANTE.
+ * @throws {AppError} Si el efectivo no es válido o la caja ya fue cerrada.
+ */
 function cerrar(vendedorId, { efectivoReportado, fecha = fechaLocal() }) {
   if (!Number.isInteger(efectivoReportado) || efectivoReportado < 0) {
     throw new AppError('El efectivo reportado debe ser un entero positivo');

@@ -14,6 +14,12 @@ function permutaciones(numero) {
   return resultado;
 }
 
+/**
+ * Valida una apuesta de Chance y normaliza sus datos antes de vender el tiquete.
+ * @param {Object} apuesta Datos de la apuesta: numero, modalidad opcional y valor.
+ * @returns {{numero: string, cifras: number, modalidad: string, valor: number}}
+ * @throws {AppError} Si el número, modalidad o valor incumple las reglas configuradas.
+ */
 function validarApuesta(apuesta) {
   const { numero, modalidad = 'DIRECTO', valor } = apuesta || {};
 

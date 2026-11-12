@@ -17,6 +17,13 @@ function guardar(ticket) {
   return ticket;
 }
 
+/**
+ * Valida y registra un tiquete de Chance asociado a un sorteo abierto.
+ * @param {Object} vendedor Usuario autenticado que realiza la venta.
+ * @param {{sorteoId: number|string, apuestas: Object[], cliente?: string}} datos Datos de la venta.
+ * @returns {Object} Tiquete creado con código, apuestas, total y estado ACTIVO.
+ * @throws {AppError} Si el sorteo no admite ventas o los datos no cumplen las reglas.
+ */
 function venderChance(vendedor, { sorteoId, apuestas, cliente }) {
   const sorteo = sorteos.obtener(sorteoId);
   sorteos.verificarVentaPermitida(sorteo, 'CHANCE');
@@ -41,6 +48,13 @@ function venderChance(vendedor, { sorteoId, apuestas, cliente }) {
   });
 }
 
+/**
+ * Valida y registra un tiquete de Baloto asociado a un sorteo abierto.
+ * @param {Object} vendedor Usuario autenticado que realiza la venta.
+ * @param {{sorteoId: number|string, jugadas: Object[], cliente?: string}} datos Datos de la venta.
+ * @returns {Object} Tiquete creado con código, jugadas, total y estado ACTIVO.
+ * @throws {AppError} Si el sorteo no admite ventas o los datos no cumplen las reglas.
+ */
 function venderBaloto(vendedor, { sorteoId, jugadas, cliente }) {
   const sorteo = sorteos.obtener(sorteoId);
   sorteos.verificarVentaPermitida(sorteo, 'BALOTO');
@@ -108,6 +122,13 @@ function anular(codigo, usuario, motivo) {
   return ticket;
 }
 
+/**
+ * Registra el pago de un premio vigente y marca el tiquete como PAGADO.
+ * @param {string} codigo Código único del tiquete.
+ * @param {Object} usuario Usuario autenticado que registra el pago.
+ * @returns {Object} Registro de pago creado.
+ * @throws {AppError} Si el sorteo no se ha jugado, el tiquete no es pagable o el premio caducó.
+ */
 function pagarPremio(codigo, usuario) {
   const ticket = buscar(codigo);
   const sorteo = sorteos.obtener(ticket.sorteoId);

@@ -44,6 +44,13 @@ function verificarVentaPermitida(sorteo, tipoEsperado) {
   }
 }
 
+/**
+ * Registra el resultado de un sorteo y liquida los tiquetes activos asociados.
+ * @param {string|number} id Identificador del sorteo.
+ * @param {string|Object} resultado Resultado de Chance (cadena) o de Baloto (objeto).
+ * @returns {Object} Sorteo actualizado, incluidos estado y resultado.
+ * @throws {AppError} Si el sorteo no existe, ya fue jugado o el resultado no es válido.
+ */
 function registrarResultado(id, resultado) {
   const sorteo = obtener(id);
   if (sorteo.estado === 'JUGADO') throw new AppError('El sorteo ya tiene resultado', 409);
